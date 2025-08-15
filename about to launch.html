@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BetSwift — Demo Sportsbook</title>
+<style>
+  :root{
+    --bg:#0b1020;--card:#121934;--muted:#aab7d4;--text:#e9f0ff;
+    --accent:#41d6a5;--accent2:#6ea8ff;--danger:#ff5a7a;--gold:#ffd166;
+    --line:rgba(255,255,255,.08)
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Arial,system-ui,sans-serif}
+  a{color:inherit}
+  header{position:sticky;top:0;z-index:40;background:rgba(9,14,30,.9);
+    backdrop-filter:saturate(150%) blur(6px);border-bottom:1px solid var(--line)}
+  .wrap{max-width:1200px;margin:auto;padding:14px 16px}
+  .nav{display:flex;align-items:center;gap:12px;justify-content:space-between}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:900}
+  .logo{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;
+    background:conic-gradient(from 230deg,var(--accent),var(--accent2));color:#04131a}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:10px 14px;border-radius:10px;border:1px solid var(--line);
+    background:#18234a;color:var(--text);cursor:pointer;font-weight:800}
+  .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#071217;border:0}
+  .btn.ghost{background:transparent}
+  .btn.danger{background:transparent;border-color:#ff7f95;color:#ff97ab}
+  .layout{display:grid;grid-template-columns:1fr 320px;gap:16px}
+  @media(max-width:980px){.layout{grid-template-columns:1fr}}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
+  .tab{padding:8px 12px;border-radius:999px;border:1px solid var(--line);cursor:pointer}
+  .tab.active{background:#1a254f}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px}
+  .leagues{display:grid;gap:12px}
+  .league{border-top:1px solid var(--line)}
+  .league:first-child{border-top:0}
+  .league h3{margin:0;padding:12px 14px;border-bottom:1px solid var(--line);font-size:15px;color:var(--muted)}
+  .event{display:grid;grid-template-columns:1.6fr .8fr .8fr .8fr;gap:8px;align-items:stretch;border-top:1px solid var(--line)}
+  .event:first-child{border-top:0}
+  .ev-info{padding:12px 14px}
+  .teams{font-weight:800}
+  .time{color:var(--muted);font-size:12px;margin-top:4px}
+  .pick{display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;border-left:1px solid var(--line);cursor:pointer}
+  .pick:hover{background:#16214a}
+  .pick.active{background:#203063;outline:2px solid rgba(110,168,255,.35)}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#1e2a56;color:var(--muted);font-size:12px;margin-left:6px}
+  /* Slip */
+  .slip{position:sticky;top:74px;padding:12px}
+  .slip h3{margin:0 0 8px}
+  .row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+  .mini{font-size:12px;color:var(--muted)}
+  .sel{display:grid;gap:8px;margin:10px 0}
+  .pill{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;background:#10193b}
+  .pill strong{display:block}
+  .odds{font-weight:900;color:var(--gold)}
+  input[type="number"]{width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0e1633;color:var(--text)}
+  .total{display:grid;gap:6px;padding:10px;border:1px dashed var(--line);border-radius:10px;background:#0f1740}
+  .muted{color:var(--muted)}
+  .foot{padding:16px 0 8px;text-align:center;color:var(--muted);font-size:12px}
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:90}
+  .modal.open{display:flex}
+  .panel{width:min(520px,92vw)} .panel header{background:#172043;border-bottom:1px solid var(--line);padding:12px 14px}
+  .close{float:right;background:transparent;border:0;color:var(--text);font-size:20px;cursor:pointer}
+  .panel .body{padding:14px;background:#0d1535}
+  .toast{position:fixed;right:14px;bottom:14px;background:#0d1b2a;border:1px solid var(--line);padding:10px 12px;border-radius:10px;color:var(--text);opacity:0;transform:translateY(6px);transition:.2s}
+  .toast.show{opacity:1;transform:translateY(0)}
+  /* watermarks / badges */
+  .wm{position:fixed;left:8px;bottom:8px;font-size:11px;color:var(--muted)}
+  .badge-18{position:fixed;right:8px;bottom:8px;background:#1e2a56;border:1px solid var(--line);padding:6px 10px;border-radius:999px;font-weight:800}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap nav">
+    <div class="brand"><div class="logo">BS</div><div>BetSwift <span class="mini" style="margin-left:6px;color:#7fb8ff">DEMO</span></div></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn ghost" id="btn-resp">Responsible Play</button>
+      <button class="btn">Sign In</button>
+      <button class="btn primary" id="btn-deposit">Deposit</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" style="margin-top:12px">
+  <div class="layout">
+    <!-- LEFT: Markets -->
+    <div class="card" style="padding:12px">
+      <div class="tabs" id="sportTabs"></div>
+      <div class="leagues" id="leagueWrap"></div>
+    </div>
+
+    <!-- RIGHT: Bet Slip -->
+    <aside class="card slip" id="slip">
+      <div class="row">
+        <h3>Bet Slip</h3>
+        <button class="btn danger" id="clearSlip" title="Clear all">Clear</button>
+      </div>
+      <div class="mini">Selections (<span id="selCount">0</span>) • Accumulator</div>
+      <div class="sel" id="selList"></div>
+
+      <div class="total">
+        <div class="row"><span class="muted">Total Odds</span><strong id="totalOdds">1.00</strong></div>
+        <label class="row" style="gap:8px">
+          <span class="muted">Stake (₦)</span>
+          <input type="number" id="stake" min="0" step="100" placeholder="0" />
+        </label>
+        <div class="row"><span class="muted">Potential Payout</span><strong id="payout">₦0</strong></div>
+      </div>
+
+      <div style="display:grid;gap:8px;margin-top:10px">
+        <button class="btn primary" id="placeBet">Place Bet</button>
+        <button class="btn ghost" id="saveSlip">Save Slip (Local)</button>
+      </div>
+
+      <div class="foot">
+        Demo only — no real wagering. Odds & events are sample data.
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="modal">
+  <div class="panel card">
+    <header>
+      <strong id="modalTitle">Notice</strong>
+      <button class="close" id="closeModal">×</button>
+    </header>
+    <div class="body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="wm">© <span id="year"></span> BetSwift (Demo UI)</div>
+<div class="badge-18">18+ Play Responsibly</div>
+
+<script>
+/* ------------------------------
+   Sample Sports & Events (Front-end only)
+--------------------------------- */
+const SPORTS = [
+  { key:'soccer', name:'Soccer' },
+  { key:'basketball', name:'Basketball' },
+  { key:'tennis', name:'Tennis' }
+];
+
+const EVENTS = {
+  soccer: [
+    { league:'Premier League', matches:[
+      { id:'E1', time:'Today 19:30', home:'Arlington FC', away:'Riverdale City', odds:{H:1.90, D:3.40, A:3.90} },
+      { id:'E2', time:'Today 21:00', home:'Blueford United', away:'Kingsbridge', odds:{H:2.10, D:3.20, A:3.40} }
+    ]},
+    { league:'La Liga', matches:[
+      { id:'E3', time:'Tomorrow 18:00', home:'Real Castellón', away:'Valverde CF', odds:{H:1.75, D:3.60, A:4.20} }
+    ]}
+  ],
+  basketball: [
+    { league:'NBA', matches:[
+      { id:'B1', time:'Today 23:00', home:'Bay Hawks', away:'Capital Giants', odds:{H:1.70, A:2.20} },
+      { id:'B2', time:'Tomorrow 01:30', home:'Desert Suns', away:'Lakeside', odds:{H:1.95, A:1.95} }
+    ]}
+  ],
+  tennis: [
+    { league:'ATP 250', matches:[
+      { id:'T1', time:'Tomorrow 12:30', home:'K. Novak', away:'L. Mendes', odds:{H:1.65, A:2.35} },
+      { id:'T2', time:'Tomorrow 14:00', home:'A. Silva', away:'J. Petrov', odds:{H:2.10, A:1.75} }
+    ]}
+  ]
+};
+
+/* ------------------------------
+   DOM helpers
+--------------------------------- */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const fmtN = n => n.toLocaleString('en-NG', {maximumFractionDigits:2});
+const money = n => '₦' + fmtN(n);
+
+/* ------------------------------
+   Render tabs & leagues
+--------------------------------- */
+const tabsEl = $('#sportTabs');
+const leaguesEl = $('#leagueWrap');
+
+let currentSport = 'soccer';
+function renderTabs(){
+  tabsEl.innerHTML = '';
+  SPORTS.forEach(s=>{
+    const b = document.createElement('button');
+    b.className = 'tab' + (s.key===currentSport?' active':'');
+    b.textContent = s.name;
+    b.onclick = ()=>{ currentSport=s.key; renderTabs(); renderLeagues(); };
+    tabsEl.appendChild(b);
+  });
+}
+function renderLeagues(){
+  leaguesEl.innerHTML = '';
+  (EVENTS[currentSport]||[]).forEach(blk=>{
+    const box = document.createElement('div');
+    box.className='league card';
+    box.innerHTML = `<h3>${blk.league}</h3>`;
+    blk.matches.forEach(m=>{
+      const row = document.createElement('div');
+      const picks = oddsButtons(currentSport, m);
+      row.className='event';
+      row.innerHTML = `
+        <div class="ev-info">
+          <div class="teams">${m.home} <span class="muted">vs</span> ${m.away}<span class="badge">${m.id}</span></div>
+          <div class="time">${m.time}</div>
+        </div>
+        ${picks}
+      `;
+      box.appendChild(row);
+    });
+    leaguesEl.appendChild(box);
+  });
+}
+function oddsButtons(sport, m){
+  // 1X2 for soccer, 2-way for others
+  if(sport==='soccer'){
+    return `
+      <div class="pick" data-mid="${m.id}" data-market="H" data-odds="${m.odds.H}">Home<br><strong class="odds">${m.odds.H.toFixed(2)}</strong></div>
+      <div class="pick" data-mid="${m.id}" data-market="D" data-odds="${m.odds.D}">Draw<br><strong class="odds">${m.odds.D.toFixed(2)}</strong></div>
+      <div class="pick" data-mid="${m.id}" data-market="A" data-odds="${m.odds.A}">Away<br><strong class="odds">${m.odds.A.toFixed(2)}</strong></div>
+    `;
+  } else {
+    return `
+      <div class="pick" data-mid="${m.id}" data-market="H" data-odds="${m.odds.H}">${m.home}<br><strong class="odds">${m.odds.H.toFixed(2)}</strong></div>
+      <div class="pick" data-mid="${m.id}" data-market="A" data-odds="${m.odds.A}">${m.away}<br><strong class="odds">${m.odds.A.toFixed(2)}</strong></div>
+      <div class="pick" style="opacity:.35;pointer-events:none">—</div>
+    `;
+  }
+}
+
+/* ------------------------------
+   Bet slip state
+--------------------------------- */
+const slipKey = 'demo_slip_v1';
+let selections = []; // { mid, label, market, odds, sport }
+let stake = 0;
+
+function findEventById(id){
+  for(const [sport, leagues] of Object.entries(EVENTS)){
+    for(const lg of leagues){
+      const m = lg.matches.find(x=>x.id===id);
+      if(m) return {sport, league: lg.league, match: m};
+    }
+  }
+  return null;
+}
+
+function toggleSelection(mid, market, odds){
+  // Only one pick per match allowed (common sportsbook rule)
+  const idx = selections.findIndex(s=>s.mid===mid);
+  if(idx>-1){
+    if(selections[idx].market===market){ selections.splice(idx,1); } // deselect same
+    else { selections[idx] = {...selections[idx], market, odds}; }   // switch market
+  } else {
+    const e = findEventById(mid);
+    if(!e) return;
+    const label = e.match.home + (market==='D'?' vs ':' — ') + (market==='D'? e.match.away : (market==='H'? 'Home' : 'Away'));
+    selections.push({ mid, market, odds: +odds, sport: e.sport, label });
+  }
+  renderSlip();
+  highlightActive();
+  saveLocal();
+}
+
+function highlightActive(){
+  $$('.pick').forEach(p=>p.classList.remove('active'));
+  selections.forEach(s=>{
+    $$('.pick').forEach(p=>{
+      if(p.dataset.mid===s.mid && p.dataset.market===s.market) p.classList.add('active');
+    });
+  });
+}
+
+function renderSlip(){
+  $('#selCount').textContent = selections.length;
+  const list = $('#selList');
+  list.innerHTML='';
+  selections.forEach((s,i)=>{
+    const it = document.createElement('div');
+    it.className='pill';
+    it.innerHTML = `
+      <div>
+        <strong>${s.label}</strong>
+        <div class="mini">Market: ${s.market} • Match ${s.mid}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="odds">${s.odds.toFixed(2)}</span>
+        <button class="btn danger" title="Remove" data-rm="${i}">×</button>
+      </div>
+    `;
+    list.appendChild(it);
+  });
+  const totalOdds = selections.reduce((acc,s)=>acc*s.odds, 1) || 1;
+  $('#totalOdds').textContent = totalOdds.toFixed(2);
+  const st = +($('#stake').value||0);
+  $('#payout').textContent = money(st * totalOdds);
+}
+
+function saveLocal(){
+  localStorage.setItem(slipKey, JSON.stringify({ selections, stake: +($('#stake').value||0) }));
+}
+function loadLocal(){
+  try{
+    const obj = JSON.parse(localStorage.getItem(slipKey)||'{}');
+    if(obj.selections){ selections = obj.selections; }
+    if(obj.stake){ $('#stake').value = obj.stake; }
+  }catch(_){}
+}
+
+/* ------------------------------
+   Modal / Toast helpers
+--------------------------------- */
+const modal = $('#modal');
+const toast = $('#toast');
+$('#closeModal').onclick = ()=>modal.classList.remove('open');
+modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('open'); });
+
+function openModal(title, html){
+  $('#modalTitle').textContent = title;
+  $('#modalBody').innerHTML = html;
+  modal.classList.add('open');
+}
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'), 2200);
+}
+
+/* ------------------------------
+   Wire up interactions
+--------------------------------- */
+document.addEventListener('click', e=>{
+  const p = e.target.closest('.pick');
+  if(p){
+    toggleSelection(p.dataset.mid, p.dataset.market, p.dataset.odds);
+  }
+  const rm = e.target.closest('[data-rm]');
+  if(rm){
+    selections.splice(+rm.dataset.rm,1);
+    renderSlip(); highlightActive(); saveLocal();
+  }
+});
+
+$('#stake').addEventListener('input', ()=>{ renderSlip(); saveLocal(); });
+
+$('#placeBet').onclick = ()=>{
+  if(selections.length===0) return showToast('Add selections to your slip');
+  const totalOdds = selections.reduce((a,s)=>a*s.odds,1);
+  const st = +($('#stake').value||0);
+  if(st<=0) return showToast('Enter a stake amount');
+  openModal('Demo — Bet Placed',
+    `<p>This is a <b>front-end demo</b>. No real bet was placed.</p>
+     <p><b>Selections:</b> ${selections.length} • <b>Total odds:</b> ${totalOdds.toFixed(2)} • <b>Stake:</b> ${money(st)} • <b>Potential payout:</b> ${money(st*totalOdds)}</p>
+     <p class="mini">To go live, you need a backend with user accounts, wallet/ledger, risk/limits, KYC/age checks, licensing and a compliant payments provider.</p>`);
+};
+
+$('#clearSlip').onclick = ()=>{
+  selections = [];
+  renderSlip(); highlightActive(); saveLocal();
+};
+
+$('#saveSlip').onclick = ()=>{
+  saveLocal();
+  showToast('Slip saved locally');
+};
+
+$('#btn-resp').onclick = ()=>{
+  openModal('Play Responsibly',
+    `<ul>
+      <li>18+ only. Set a budget and stick to it.</li>
+      <li>Don’t chase losses. Take breaks.</li>
+      <li>If gambling becomes a problem, seek help (e.g., local helplines).</li>
+    </ul>`);
+};
+$('#btn-deposit').onclick = ()=>{
+  openModal('Demo Wallet',
+    `<p>This is a UI demo. Connect a real payment gateway (Card/Bank/USSD), strong customer auth, and fraud checks.</p>`);
+};
+
+/* ------------------------------
+   Init
+--------------------------------- */
+document.getElementById('year').textContent = new Date().getFullYear();
+renderTabs(); renderLeagues(); loadLocal(); renderSlip(); highlightActive();
+</script>
+</body>
+</html>
